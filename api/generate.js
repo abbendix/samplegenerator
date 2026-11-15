@@ -70,13 +70,14 @@ function processAudio(input,rate,style,targetSeconds){
 export default async function handler(req,res){
  if(req.method!=='POST'){res.setHeader('Allow','POST');return res.status(405).json({error:'POST required'});}
  res.setHeader('Cache-Control','no-store');
- const {text,style='space',gender='neutral',bpm=128,bars=2,variation=0,sync=false}=req.body||{};
+ const {text,style='space',gender='neutral',bpm=128,bars=2,variation=0,sync=false,voiceDirection=''}=req.body||{};
  if(typeof text!=='string'||!text.trim()||text.length>900||!styles[style]||!voices[gender]||!Number.isInteger(variation)||variation<0||variation>2||!Number.isFinite(Number(bpm))||Number(bpm)<60||Number(bpm)>180||![1,2,4,8].includes(Number(bars)))return res.status(400).json({error:'Invalid sample settings.'});
+ if(typeof voiceDirection!=='string'||voiceDirection.length>500)return res.status(400).json({error:'Voice direction must be 500 characters or fewer.'});
  if(!process.env.OPENAI_API_KEY)return res.status(503).json({error:'OPENAI_API_KEY is missing from Vercel.'});
  const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),45000);
  let stage='requesting speech';
  try{
-  const instructions=styles[style].prompt+' '+['Use natural pacing.','Use slightly longer pauses.','Speak with slightly greater urgency.'][variation]+' Read the provided text exactly.';
+  const instructions=styles[style].prompt+' '+['Use natural pacing.','Use slightly longer pauses.','Speak with slightly greater urgency.'][variation]+' '+voiceDirection.trim()+' Read the provided text exactly.';
   const response=await fetch('https://api.openai.com/v1/audio/speech',{method:'POST',headers:{Authorization:'Bearer '+process.env.OPENAI_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({model:'gpt-4o-mini-tts',voice:voices[gender][variation%2],input:text.trim(),instructions,response_format:'mp3'}),signal:controller.signal});
   if(!response.ok){
    const raw=await response.text();let detail=raw;
