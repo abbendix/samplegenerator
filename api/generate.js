@@ -1,4 +1,4 @@
-import { randomUUID, timingSafeEqual } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 
 const styles = {
  radio: {prompt:'Natural 1930s radio announcer, poised, articulate, warm, formal, archival performance.', low:220, high:3200, drive:1.25, echo:0},
@@ -63,12 +63,6 @@ function processAudio(input,rate,style,targetSeconds){
 export default async function handler(req,res){
  if(req.method!=='POST'){res.setHeader('Allow','POST');return res.status(405).json({error:'POST required'});}
  res.setHeader('Cache-Control','no-store');
- const secret=process.env.APP_ACCESS_TOKEN;
- // Never allow unauthenticated public access to a billable endpoint.
- if(!secret)return res.status(503).json({error:'Set APP_ACCESS_TOKEN in Vercel Environment Variables to enable generation.'});
- const token=req.headers['x-voice-lab-token']||'';
- const a=Buffer.from(String(token)),b=Buffer.from(secret);
- if(a.length!==b.length||!timingSafeEqual(a,b))return res.status(401).json({error:'Invalid access token.'});
  const {text,style='space',gender='neutral',bpm=128,bars=2,variation=0,sync=false}=req.body||{};
  if(typeof text!=='string'||!text.trim()||text.length>900||!styles[style]||!voices[gender]||!Number.isInteger(variation)||variation<0||variation>2||!Number.isFinite(Number(bpm))||Number(bpm)<60||Number(bpm)>180||![1,2,4,8].includes(Number(bars)))return res.status(400).json({error:'Invalid sample settings.'});
  if(!process.env.OPENAI_API_KEY)return res.status(503).json({error:'OPENAI_API_KEY is missing from Vercel.'});
