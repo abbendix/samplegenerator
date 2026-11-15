@@ -5,6 +5,10 @@ const styles = {
  space: {prompt:'Calm, restrained, measured, clinical futuristic spaceship computer. Subtly intimate and human. Do not imitate any actor or fictional character.', low:160, high:4200, drive:1, echo:0.06},
  horror: {prompt:'Believable psychological horror voice: quiet, ominous, restrained, unsettling tension, subtle pauses.', low:95, high:5500, drive:1.15, echo:0.19}
 };
+function safeError(value){
+ const raw=String(value??'Unknown error');
+ return raw.replace(/sk-[A-Za-z0-9_-]+/g,'[REDACTED_API_KEY]').replace(/Bearer\\s+[^\\s"']+/gi,'Bearer [REDACTED]').slice(0,1000);
+}
 const voices={male:['onyx','echo'],female:['nova','shimmer'],neutral:['alloy','sage']};
 function decodeWav(buffer){
  if(buffer.toString('ascii',0,4)!=='RIFF'||buffer.toString('ascii',8,12)!=='WAVE')throw Error('Unexpected WAV format');
@@ -74,13 +78,19 @@ export default async function handler(req,res){
  try{
   const instructions=styles[style].prompt+' '+['Use natural pacing.','Use slightly longer pauses.','Speak with slightly greater urgency.'][variation]+' Read the provided text exactly.';
   const response=await fetch('https://api.openai.com/v1/audio/speech',{method:'POST',headers:{Authorization:'Bearer '+process.env.OPENAI_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({model:'gpt-4o-mini-tts',voice:voices[gender][variation%2],input:text.trim(),instructions,response_format:'mp3'}),signal:controller.signal});
-  if(!response.ok){console.error('TTS error',response.status,(await response.text()).slice(0,300));return res.status(502).json({error:'Voice service failed ('+response.status+'). Check API key, credits and model access.'});}
+  if(!response.ok){
+   const raw=await response.text();let detail=raw;
+   try{const parsed=JSON.parse(raw);detail=parsed.error?.message||raw;}catch{}
+   const id=randomUUID().slice(0,8);
+   console.error('TTS error',id,response.status,safeError(raw));
+   return res.status(502).json({error:'OpenAI HTTP '+response.status+': '+safeError(detail)+' (error ID '+id+')',stage,upstreamStatus:response.status,errorId:id});
+  }
   stage='receiving MP3';
   const audio=Buffer.from(await response.arrayBuffer());
   if(audio.length<100)throw new Error('Empty MP3 response');
   res.setHeader('Content-Type','audio/mpeg');
   res.setHeader('Content-Disposition','attachment; filename="voice-lab-'+style+'-'+(variation+1)+'.mp3"');
   return res.status(200).send(audio);
- }catch(e){const id=randomUUID().slice(0,8);console.error('Voice generation',id,stage,e.stack||e.message);return res.status(500).json({error:stage==='requesting speech'?'Speech request failed or timed out. Check Vercel logs ('+id+').':'Audio generation failed during '+stage+'. Check Vercel logs ('+id+').'});}
+ }catch(e){const id=randomUUID().slice(0,8);console.error('Voice generation',id,stage,e.stack||e.message);return res.status(500).json({error:safeError(e.message),stage,errorId:id});}
  finally{clearTimeout(timeout);}
 }
