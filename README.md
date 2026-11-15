@@ -1,6 +1,6 @@
 # Voice Lab v0.2 — Vercel production
 
-Original cinematic voice sample generator: Vintage Radio, Space Computer, Dark Horror. Generates 3 variations as 44.1 kHz / 24-bit mono WAV.
+Original cinematic voice sample generator: Vintage Radio, Space Computer, Dark Horror. Generates 3 variations as MP3 audio.
 
 ## Deployment
 
@@ -19,8 +19,8 @@ Original cinematic voice sample generator: Vintage Radio, Space Computer, Dark H
 - Static frontend: `public/`.
 - No localhost, FFmpeg, or persistent Node.js server needed for production.
 - AI speech: OpenAI `gpt-4o-mini-tts`; requires API billing/credits.
-- Audio processing: pure JavaScript WAV decoder, simple tone filters, saturation and echo, 44.1 kHz/24-bit mono WAV export.
-- BPM fitting is a **simple resampling stretch that changes pitch**. It is not a high-quality pitch-preserving time stretch; leave sync unchecked for natural voice.
+- Audio output: OpenAI MP3 returned directly to the browser, without WAV decoding or transcoding.
+- BPM synchronization and additional DSP effects are temporarily disabled in this MP3 troubleshooting release.
 - The legacy `server.js` is retained only for historical reference; Vercel uses `api/generate.js`.
 
 ## Security and limitations
