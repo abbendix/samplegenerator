@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "framework": null,
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/index.html"
+    }
+  ],
+  "functions": {
+    "api/generate.js": {
+      "maxDuration": 60
+    }
+  }
+}
