@@ -18,7 +18,7 @@ $('generate').addEventListener('click',async()=>{
    const wrap=document.createElement('div');wrap.className='take';
    const head=document.createElement('div');head.className='take-head';
    const title=document.createElement('strong');title.textContent=`TAKE ${String(variation+1).padStart(2,'0')}`;
-   const link=document.createElement('a');link.className='download';link.textContent='↓ WAV';link.href=url;link.download=`voice-lab-${style}-take-${variation+1}.wav`;
+   const link=document.createElement('a');link.className='download';link.textContent='↓ MP3';link.href=url;link.download=`voice-lab-${style}-take-${variation+1}.mp3`;
    const audio=document.createElement('audio');audio.controls=true;audio.src=url;
    head.append(title,link);wrap.append(head,audio);$('takes').append(wrap);
   }
