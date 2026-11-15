@@ -11,10 +11,13 @@ function decodeWav(buffer){
  let offset=12,format,channels,rate,bits,dataOffset,dataSize,encoding;
  while(offset+8<=buffer.length){
   const id=buffer.toString('ascii',offset,offset+4),size=buffer.readUInt32LE(offset+4),start=offset+8;
-  if(start+size>buffer.length)throw Error('Invalid WAV chunk');
+  if(start>buffer.length)throw Error('Invalid WAV chunk');
+  // Streaming WAV responses can use 0xffffffff as an unknown data length.
+  const actualSize=(id==='data'&&(size===0xffffffff||start+size>buffer.length))?buffer.length-start:size;
+  if(start+actualSize>buffer.length)throw Error('Invalid WAV chunk');
   if(id==='fmt '){encoding=buffer.readUInt16LE(start);channels=buffer.readUInt16LE(start+2);rate=buffer.readUInt32LE(start+4);bits=buffer.readUInt16LE(start+14);format=true;}
-  if(id==='data'){dataOffset=start;dataSize=size;}
-  offset=start+size+(size%2);
+  if(id==='data'){dataOffset=start;dataSize=actualSize;}
+  offset=start+actualSize+(actualSize%2);
  }
  if(!format||dataOffset===undefined||!rate||channels<1||channels>2)throw Error('Unsupported WAV');
  if(!((encoding===1&&[16,24,32].includes(bits))||(encoding===3&&bits===32)))throw Error('Unsupported WAV encoding');
@@ -67,16 +70,19 @@ export default async function handler(req,res){
  if(typeof text!=='string'||!text.trim()||text.length>900||!styles[style]||!voices[gender]||!Number.isInteger(variation)||variation<0||variation>2||!Number.isFinite(Number(bpm))||Number(bpm)<60||Number(bpm)>180||![1,2,4,8].includes(Number(bars)))return res.status(400).json({error:'Invalid sample settings.'});
  if(!process.env.OPENAI_API_KEY)return res.status(503).json({error:'OPENAI_API_KEY is missing from Vercel.'});
  const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),45000);
+ let stage='requesting speech';
  try{
   const instructions=styles[style].prompt+' '+['Use natural pacing.','Use slightly longer pauses.','Speak with slightly greater urgency.'][variation]+' Read the provided text exactly.';
   const response=await fetch('https://api.openai.com/v1/audio/speech',{method:'POST',headers:{Authorization:'Bearer '+process.env.OPENAI_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({model:'gpt-4o-mini-tts',voice:voices[gender][variation%2],input:text.trim(),instructions,response_format:'wav'}),signal:controller.signal});
   if(!response.ok){console.error('TTS error',response.status,(await response.text()).slice(0,300));return res.status(502).json({error:'Voice service failed ('+response.status+'). Check API key, credits and model access.'});}
+  stage='decoding generated WAV';
   const wav=decodeWav(Buffer.from(await response.arrayBuffer()));
   const target=sync?Number(bars)*4*60/Number(bpm):null;
+  stage='processing audio';
   const output=processAudio(wav.samples,wav.rate,styles[style],target);
   res.setHeader('Content-Type','audio/wav');
   res.setHeader('Content-Disposition','attachment; filename="voice-lab-'+style+'-'+(variation+1)+'.wav"');
   return res.status(200).send(output);
- }catch(e){console.error('Voice generation',randomUUID(),e.message);return res.status(500).json({error:'Generation failed or timed out. Try a shorter text.'});}
+ }catch(e){const id=randomUUID().slice(0,8);console.error('Voice generation',id,stage,e.stack||e.message);return res.status(500).json({error:stage==='requesting speech'?'Speech request failed or timed out. Check Vercel logs ('+id+').':'Audio generation failed during '+stage+'. Check Vercel logs ('+id+').'});}
  finally{clearTimeout(timeout);}
 }
