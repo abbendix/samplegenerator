@@ -12,7 +12,7 @@ $('generate').addEventListener('click',async()=>{
  try{
   for(let variation=0;variation<3;variation++){
    $('status').textContent=`Generating take ${variation+1} of 3…`;
-   const response=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json','x-voice-lab-token':$('accessToken').value},body:JSON.stringify({...params,variation})});
+   const response=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...params,variation})});
    if(!response.ok){const result=await response.json().catch(()=>({}));throw new Error(result.error||`Request failed: ${response.status}`);}
    const blob=await response.blob();const url=URL.createObjectURL(blob);urls.push(url);
    const wrap=document.createElement('div');wrap.className='take';
