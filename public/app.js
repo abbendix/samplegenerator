@@ -63,7 +63,7 @@ $('generate').addEventListener('click',async()=>{
    const audio=document.createElement('audio');audio.controls=true;audio.src=url;
    head.append(title,link);wrap.append(head,audio);$('takes').append(wrap);
   }
-  $('status').textContent='Sample generated. '+(referenceProfile?'Reference tone matching applied locally. Download WAV.':'Download MP3.')';
+  $('status').textContent='Sample generated. '+(referenceProfile?'Reference tone matching applied locally. Download WAV.':'Download MP3.');
  }catch(error){$('status').textContent=error.message;}
  finally{btn.disabled=false;}
 });
