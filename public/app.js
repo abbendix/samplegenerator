@@ -1,5 +1,5 @@
 const $=id=>document.getElementById(id);
-let style='space';let urls=[];let referenceProfile=null;
+let style='space';let urls=[];let referenceProfile=null;let lastRaw=null;
 const script=$('script');
 function updateCount(){$('count').textContent=`${script.value.length} / 900 characters`;}
 script.addEventListener('input',updateCount);updateCount();
@@ -55,7 +55,7 @@ $('generate').addEventListener('click',async()=>{
    $('status').textContent=`Generating one sample…`;
    const response=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...params,variation})});
    if(!response.ok){const raw=await response.text();let result;try{result=JSON.parse(raw);}catch{result={error:raw.slice(0,600)}};throw new Error(`HTTP ${response.status}${result.stage?' · '+result.stage:''}: ${result.error||'Unknown error'}${result.errorId?' [ID '+result.errorId+']':''}`);}
-   const raw=await response.blob();const matched=!!referenceProfile;const blob=matched?await matchReference(raw,referenceProfile):raw;const extension=matched?'wav':'mp3';const url=URL.createObjectURL(blob);urls.push(url);
+   const raw=await response.blob();lastRaw=raw;const blob=await window.VoiceFX.render(raw,style,referenceProfile);const extension='wav';const url=URL.createObjectURL(blob);urls.push(url);
    const wrap=document.createElement('div');wrap.className='take';
    const head=document.createElement('div');head.className='take-head';
    const title=document.createElement('strong');title.textContent=`TAKE ${String(variation+1).padStart(2,'0')}`;
@@ -63,7 +63,17 @@ $('generate').addEventListener('click',async()=>{
    const audio=document.createElement('audio');audio.controls=true;audio.src=url;
    head.append(title,link);wrap.append(head,audio);$('takes').append(wrap);
   }
-  $('status').textContent='Sample generated. '+(referenceProfile?'Reference tone matching applied locally. Download WAV.':'Download MP3.');
+  $('status').textContent='Sample generated and processed. Download WAV. You can switch character and click Reprocess without using credits.;
  }catch(error){$('status').textContent=error.message;}
  finally{btn.disabled=false;}
+});
+$('reprocess').addEventListener('click',async()=>{
+ if(!lastRaw)return;
+ const button=$('reprocess');button.disabled=true;$('status').textContent='Applying '+style+' effects locally…';
+ try{
+  const blob=await window.VoiceFX.render(lastRaw,style,referenceProfile),url=URL.createObjectURL(blob);urls.push(url);
+  const take=$('takes').querySelector('.take');if(!take)throw Error('Generate a sample first.');
+  take.querySelector('audio').src=url;const link=take.querySelector('a');link.href=url;link.download='voice-lab-'+style+'.wav';link.textContent='↓ WAV';
+  $('status').textContent='Effects updated. No AI credits used.';
+ }catch(e){$('status').textContent='Audio processing error: '+e.message;}finally{button.disabled=false;}
 });
