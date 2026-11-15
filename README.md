@@ -1,30 +1,33 @@
-# Voice Lab v0.1
+# Voice Lab v0.2 — Vercel production
 
-A cinematic voice-sample generator for music production. Three original voice characters, male/female/neutral voices, three variations, 4/4 BPM timing, preview, and downloadable **44.1 kHz / 24-bit mono WAV**.
+Original cinematic voice sample generator: Vintage Radio, Space Computer, Dark Horror. Generates 3 variations as 44.1 kHz / 24-bit mono WAV.
 
-## Requirements
+## Deployment
 
-- Node.js 20+
-- FFmpeg and ffprobe on PATH
-- OpenAI API key with access to gpt-4o-mini-tts (billed separately)
+1. Import GitHub repository `abbendix/samplegenerator` into Vercel.
+2. Set **Framework Preset: Other** and leave Root Directory at the repository root.
+3. In Vercel **Settings → Environment Variables**, add:
+   - `OPENAI_API_KEY`: your OpenAI API key (server-side only).
+   - `APP_ACCESS_TOKEN`: a long random private password you choose. **Required** to prevent anonymous use of a paid API.
+4. Set both for Production and redeploy via **Deployments → Redeploy** if necessary.
+5. Open the production URL, enter the **APP_ACCESS_TOKEN** value in the app's Access Token field, enter text and generate.
 
-## Local development
+**Never paste the OpenAI API key into the app's Access Token field.** The browser only sends the separate access token to your serverless endpoint. Do not commit secrets.
 
-```bash
-npm install
-cp .env.example .env
-# Set OPENAI_API_KEY in .env
-npm run dev
-```
+## Runtime
 
-Open http://localhost:3000.
+- Vercel serverless endpoint: `api/generate.js`.
+- Static frontend: `public/`.
+- No localhost, FFmpeg, or persistent Node.js server needed for production.
+- AI speech: OpenAI `gpt-4o-mini-tts`; requires API billing/credits.
+- Audio processing: pure JavaScript WAV decoder, simple tone filters, saturation and echo, 44.1 kHz/24-bit mono WAV export.
+- BPM fitting is a **simple resampling stretch that changes pitch**. It is not a high-quality pitch-preserving time stretch; leave sync unchecked for natural voice.
+- The legacy `server.js` is retained only for historical reference; Vercel uses `api/generate.js`.
 
-## Architecture
+## Security and limitations
 
-Express serves the frontend and handles POST /api/generate. OpenAI TTS creates original speech; FFmpeg applies radio, space-computer or horror processing and optionally syncs the output to bars at the chosen BPM.
+Access token authentication is a basic shared password, not full user accounts. Do not share it. Set OpenAI usage budgets and monitor costs. The endpoint enforces input limits but has no per-user rate limiter. Three variations generate three paid requests. Vercel function duration limits may affect longer samples. No existing film audio or actor voice cloning.
 
-## Deployment warning
+## Status
 
-**This is a local MVP, not ready for public Vercel deployment.** It requires ffmpeg and ffprobe binaries, and its long-running Express process needs adapting for Vercel serverless. Before exposing paid TTS generation publicly, add authentication, rate limits, abuse protection and spending limits. Never commit your .env or API key.
-
-Original synthetic performances; no film clips or actor voice cloning.
+Code committed to GitHub. Deployment and end-to-end voice generation require testing on the live Vercel project.
