@@ -73,16 +73,14 @@ export default async function handler(req,res){
  let stage='requesting speech';
  try{
   const instructions=styles[style].prompt+' '+['Use natural pacing.','Use slightly longer pauses.','Speak with slightly greater urgency.'][variation]+' Read the provided text exactly.';
-  const response=await fetch('https://api.openai.com/v1/audio/speech',{method:'POST',headers:{Authorization:'Bearer '+process.env.OPENAI_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({model:'gpt-4o-mini-tts',voice:voices[gender][variation%2],input:text.trim(),instructions,response_format:'wav'}),signal:controller.signal});
+  const response=await fetch('https://api.openai.com/v1/audio/speech',{method:'POST',headers:{Authorization:'Bearer '+process.env.OPENAI_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({model:'gpt-4o-mini-tts',voice:voices[gender][variation%2],input:text.trim(),instructions,response_format:'mp3'}),signal:controller.signal});
   if(!response.ok){console.error('TTS error',response.status,(await response.text()).slice(0,300));return res.status(502).json({error:'Voice service failed ('+response.status+'). Check API key, credits and model access.'});}
-  stage='decoding generated WAV';
-  const wav=decodeWav(Buffer.from(await response.arrayBuffer()));
-  const target=sync?Number(bars)*4*60/Number(bpm):null;
-  stage='processing audio';
-  const output=processAudio(wav.samples,wav.rate,styles[style],target);
-  res.setHeader('Content-Type','audio/wav');
-  res.setHeader('Content-Disposition','attachment; filename="voice-lab-'+style+'-'+(variation+1)+'.wav"');
-  return res.status(200).send(output);
+  stage='receiving MP3';
+  const audio=Buffer.from(await response.arrayBuffer());
+  if(audio.length<100)throw new Error('Empty MP3 response');
+  res.setHeader('Content-Type','audio/mpeg');
+  res.setHeader('Content-Disposition','attachment; filename="voice-lab-'+style+'-'+(variation+1)+'.mp3"');
+  return res.status(200).send(audio);
  }catch(e){const id=randomUUID().slice(0,8);console.error('Voice generation',id,stage,e.stack||e.message);return res.status(500).json({error:stage==='requesting speech'?'Speech request failed or timed out. Check Vercel logs ('+id+').':'Audio generation failed during '+stage+'. Check Vercel logs ('+id+').'});}
  finally{clearTimeout(timeout);}
 }
