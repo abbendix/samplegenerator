@@ -8,11 +8,10 @@ Original cinematic voice sample generator: Vintage Radio, Space Computer, Dark H
 2. Set **Framework Preset: Other** and leave Root Directory at the repository root.
 3. In Vercel **Settings → Environment Variables**, add:
    - `OPENAI_API_KEY`: your OpenAI API key (server-side only).
-   - `APP_ACCESS_TOKEN`: a long random private password you choose. **Required** to prevent anonymous use of a paid API.
-4. Set both for Production and redeploy via **Deployments → Redeploy** if necessary.
-5. Open the production URL, enter the **APP_ACCESS_TOKEN** value in the app's Access Token field, enter text and generate.
+4. Set the key for Production and redeploy via **Deployments → Redeploy** if necessary.
+5. Open the production URL, enter text and generate.
 
-**Never paste the OpenAI API key into the app's Access Token field.** The browser only sends the separate access token to your serverless endpoint. Do not commit secrets.
+**Never paste your OpenAI API key into the browser or commit it.**
 
 ## Runtime
 
@@ -26,7 +25,7 @@ Original cinematic voice sample generator: Vintage Radio, Space Computer, Dark H
 
 ## Security and limitations
 
-Access token authentication is a basic shared password, not full user accounts. Do not share it. Set OpenAI usage budgets and monitor costs. The endpoint enforces input limits but has no per-user rate limiter. Three variations generate three paid requests. Vercel function duration limits may affect longer samples. No existing film audio or actor voice cloning.
+**Development mode: no authentication. Anyone who finds the public URL can use your paid API.** Set OpenAI usage budgets and monitor costs. Re-enable authentication before wider release. The endpoint enforces input limits but has no per-user rate limiter. Three variations generate three paid requests. Vercel function duration limits may affect longer samples. No existing film audio or actor voice cloning.
 
 ## Status
 
